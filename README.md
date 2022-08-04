@@ -1,46 +1,203 @@
-# Getting Started with Create React App
+# react-typescript-kakao-map-test
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[https://apis.map.kakao.com/web/](https://apis.map.kakao.com/web/)
 
-## Available Scripts
+[https://apis.map.kakao.com/web/guide/](https://apis.map.kakao.com/web/guide/)
 
-In the project directory, you can run:
+[https://developers.kakao.com/](https://developers.kakao.com/)
 
-### `npm start`
+> 내 애플리케이션 ⇒ 애플리케이션 추가하기 ⇒ 생성 ⇒ 앱키 (javascript 키 복사)
+> 
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+`create-react-app kakao-map --template typescript`
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+React 실행 전에 가지고 올 수 있도록 `public` 의 `index.html` 으로 가져온다!
 
-### `npm test`
+```jsx
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=발급받은 APP KEY를 넣으시면 됩니다."></script>
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+보안을 위해 
 
-### `npm run build`
+> 내애플리케이션 ⇒ 앱설정 ⇒ 플랫폼 ⇒ Web 플랫폼 등록([http://localhost:3000](http://localhost:3000/))
+> 
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+React 를 지원하지 않는 프레임워크 가져오기!
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```tsx
+// src/App.tsx
+import React, { useEffect } from 'react';
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+// typescript 에서 kakao 는 에러가 발생함. window 로 가지고와서 사용!
+declare global {
+  interface Window {
+    kakao: any
+  }
+}
 
-### `npm run eject`
+function App() {
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+  useEffect(() => {
+    const container = document.getElementById('map');
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+		var options = {
+			center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+			level: 3
+		};
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+		var map = new window.kakao.maps.Map(container, options);
+  }, []);
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+  return (
+    <div>
+      <div id='map' style={{ width: 300, height: 300 }}></div>
+    </div>
+  );
+}
 
-## Learn More
+export default App;
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+또는
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```html
+// public/index.html
+<head>
+	<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=76b4fadf4a74f8c17d93cb8d1e5742c1"></script>
+    <script>
+      function loadMap() {
+        const container = document.getElementById('map');
+
+        var options = {
+          center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+          level: 3
+        };
+
+        var map = new window.kakao.maps.Map(container, options);
+      }
+    </script>
+</head>
+```
+
+```tsx
+// src/App.tsx
+import React, { useEffect } from 'react';
+
+declare global {
+  interface Window {
+    loadMap: () => void;
+  }
+}
+
+function App() {
+
+  useEffect(() => {
+    window.loadMap()
+  }, []);
+
+  return (
+    <div>
+      <div id='map' style={{ width: 300, height: 300 }}></div>
+    </div>
+  );
+}
+
+export default App;
+```
+
+# React 로 가져오기(최적화)
+
+## 방법1
+
+```tsx
+// src/App.tsx
+import React, { useEffect, useRef } from 'react';
+
+declare global {
+  interface Window {
+    kakao: any
+  }
+}
+
+function App() {
+  // React 에서는 id 사용을 권장하지 않음! useRef 로 가져옴
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    
+    // 이슈 방지
+    if(mapRef.current) {
+
+      var options = {
+        center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+        level: 3
+      };
+
+      var map = new window.kakao.maps.Map(mapRef.current, options);
+      }
+
+  }, []);
+
+  return (
+    <div>
+      <div ref={mapRef} style={{ width: 300, height: 300 }}></div>
+    </div>
+  );
+}
+
+export default App;
+```
+
+# 방법2(추천!)
+
+kakao map 을 사용할 때만 로딩
+
+디버깅 시 에러 발생을 줄임
+
+```tsx
+// src/App.tsx
+import React, { useEffect, useRef } from 'react';
+
+declare global {
+  interface Window {
+    kakao: any
+  }
+}
+
+function App() {
+  // React 에서는 id 사용을 권장하지 않음! useRef 로 가져옴
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+		// script 를 동적으로 생성
+    const script = document.createElement('script')
+    
+    script.src = "//dapi.kakao.com/v2/maps/sdk.js?appkey=76b4fadf4a74f8c17d93cb8d1e5742c1&autoload=false"
+    
+    document.head.appendChild(script)
+    
+    script.onload = () => {
+      if(mapRef.current) {
+				// kakao map 이 load 되면 실행
+        window.kakao.maps.load(() => {
+          var options = {
+            center: new window.kakao.maps.LatLng(33.450701, 126.570667),
+            level: 3
+          };
+    
+          var map = new window.kakao.maps.Map(mapRef.current, options);
+        })
+      }
+    }
+		return () => script.remove()
+  }, []);
+
+  return (
+    <div>
+      <div ref={mapRef} style={{ width: 300, height: 300 }}></div>
+    </div>
+  );
+}
+
+export default App;
+```
